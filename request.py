@@ -16,20 +16,18 @@ class spotify_request:
 
 client = spotify_request('Spotify_Client_ID', 'Spotify_Client_Secret')
 
-Spotify_Redirect_URI1 = 'http://localhost:8888/callback'
+SPOTIFY_REDIRECT_URI = 'http://localhost:3000/callback'
 
-Spotify_Redirect_URI2 = 'http://localhost:3000/callback'
-
-def authorize_scope(client_id, client_secret):
+def authorize_scope(client_id, client_secret, SPOTIFY_REDIRECT_URI):
     scopes = 'user-read-recently-played'
     scopes_auth_headers = {
             "client_id": client_id,
             "response_type": "code",
-            "redirect_uri": "http://localhost:3000/callback",
+            "redirect_uri": SPOTIFY_REDIRECT_URI,
             "scope": scopes
     }
     
-    webbrowser.open("https://accounts.spotify.com/authorize?" + urlencode(scopes_auth_headers))
+    webbrowser.open("https://accounts.spotify.com/authorize?" + urlencode(scopes_auth_headers), new=2)
 
 
 def get_token(client_id, client_secret):
@@ -53,6 +51,8 @@ def get_token(client_id, client_secret):
         'Authorization': 'Bearer {token}'.format(token=access_token)
     }
 
+    code = input('paste code from end of url here:')
+
     return access_token, headers
 
 def get_data(access_token, headers):
@@ -72,14 +72,21 @@ def get_data(access_token, headers):
         print('----- token string received, attempting to retrieve data...  -----')
 
         try:
-            # response = requests.get(BASE_URL + 'me/top/artists', headers=headers)
+            response = requests.get(BASE_URL + 'me/top/artists', headers=headers)
             # response = requests.get(f'https://accounts.spotify.com/authorize?client_id={client.client_id}&response_type=code&redirect_uri=http%3A%2F%2Flocalhost:3000%2Fcallback&scope={scopes}')
-            response = requests.get(BASE_URL + 'audio-features/' + track_id, headers=headers)
+            # response = requests.get(BASE_URL + 'audio-features/' + track_id, headers=headers)
             response.raise_for_status()
             print('----- data retrieved -----')
+            print(response)
             return response.content
         except requests.HTTPError as error:
             print('Error returned:\n', error)
+            return None
+        except requests.exceptions.RequestException as e:
+            print("Connection refused", e)
+            return None
+        except Exception as e:
+            print("Internal error", e)
             return None
 
         print('----- converting data...  -----')
@@ -112,6 +119,6 @@ def get_data(access_token, headers):
 
 if __name__ == "__main__":
     spotify_request
-    authorize_scope(client.client_id, client.client_secret)
+    authorize_scope(client.client_id, client.client_secret, SPOTIFY_REDIRECT_URI)
     access_token, headers = get_token(client.client_id, client.client_secret)
     get_data(access_token, headers)
