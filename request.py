@@ -18,7 +18,7 @@ client = spotify_request('Spotify_Client_ID', 'Spotify_Client_Secret')
 
 SPOTIFY_REDIRECT_URI = 'http://localhost:3000/callback'
 
-def authorize_scope(client_id, client_secret, SPOTIFY_REDIRECT_URI):
+def get_auth_code(client_id, client_secret, SPOTIFY_REDIRECT_URI):
     scopes = 'user-read-recently-played'
     scopes_auth_headers = {
             "client_id": client_id,
@@ -29,50 +29,73 @@ def authorize_scope(client_id, client_secret, SPOTIFY_REDIRECT_URI):
     
     webbrowser.open("https://accounts.spotify.com/authorize?" + urlencode(scopes_auth_headers), new=2)
 
+    auth_code = input('paste code from end of url here:')
 
-def get_token(client_id, client_secret):
+    return auth_code, scopes
+
+def get_auth_token(client_id, client_secret, SPOTIFY_REDIRECT_URI, auth_code):
+    encoded_credentials = base64.b64encode(client_id.encode() + b':' + client_secret.encode()).decode("utf-8")
     token_auth_url = 'https://accounts.spotify.com/api/token'
 
     token_headers = {
-        'grant_type': 'client_credentials',
-        'client_id': client.client_id,
-        'client_secret': client.client_secret,
+        'Authorization': 'Basic ' + encoded_credentials,
+        'Content-Type': 'application/x-www-form-urlencoded'        
+        
+        # token headers if requesting non-user data 
+        # 'grant_type': 'client_credentials',
+        # 'client_id': client.client_id,
+        # 'client_secret': client.client_secret,
     }
 
-    auth_response = requests.post(token_auth_url, token_headers )
+    token_data = {
+        'grant_type': 'authorization_code',
+        'code': auth_code,
+        'redirect_uri': SPOTIFY_REDIRECT_URI
+    }
 
-    auth_response_data = auth_response.json()
+    r = requests.post(token_auth_url, data=token_data, headers=token_headers)
+
+    token = r.json()['access_token']
+
+
+    # code for getting non user data 
+    # auth_response = requests.post(token_auth_url, token_headers )
+
+    # auth_response_data = auth_response.json()
 
     # save the access token
-    access_token = auth_response_data['access_token']
+    # access_token = auth_response_data['access_token']
 
     # configure header object for access to resource
-    headers = {
-        'Authorization': 'Bearer {token}'.format(token=access_token)
-    }
+    # headers = {
+    #     'Authorization': 'Bearer {token}'.format(token=access_token)
+    # }
 
-    code = input('paste code from end of url here:')
+    return token
 
-    return access_token, headers
-
-def get_data(access_token, headers):
+def get_data(token, scopes):
     # base URL of all Spotify API endpoints
     BASE_URL = 'https://api.spotify.com/v1/'
 
-    # https://open.spotify.com/track/6zaKKRt9aMDO0uWxGI5ONc?si=3b505a0e83824a8d
-
+    # code for getting track data/ non user data
     # actual GET request with proper header
+    # track_id = '6zaKKRt9aMDO0uWxGI5ONc' 
     # r = requests.get(BASE_URL + 'audio-features/' + track_id, headers=headers)
 
-    track_id = '6zaKKRt9aMDO0uWxGI5ONc' 
-    scopes = 'user-read-recently-played'
+    user_headers = {
+        'Authorization': 'Bearer {token}'.format(token=token),
+        'Content-Type': 'application/json'
+    }
 
+    user_params = {
+        'limit': 50
+    }
 
-    if isinstance(access_token, str) == True:
+    if isinstance(token, str) == True:
         print('----- token string received, attempting to retrieve data...  -----')
 
         try:
-            response = requests.get(BASE_URL + 'me/top/artists', headers=headers)
+            response = requests.get(BASE_URL + scopes, params=user_params, headers=user_headers)
             # response = requests.get(f'https://accounts.spotify.com/authorize?client_id={client.client_id}&response_type=code&redirect_uri=http%3A%2F%2Flocalhost:3000%2Fcallback&scope={scopes}')
             # response = requests.get(BASE_URL + 'audio-features/' + track_id, headers=headers)
             response.raise_for_status()
@@ -119,6 +142,6 @@ def get_data(access_token, headers):
 
 if __name__ == "__main__":
     spotify_request
-    authorize_scope(client.client_id, client.client_secret, SPOTIFY_REDIRECT_URI)
-    access_token, headers = get_token(client.client_id, client.client_secret)
-    get_data(access_token, headers)
+    auth_code, scopes = get_auth_code(client.client_id, client.client_secret, SPOTIFY_REDIRECT_URI)
+    token = get_auth_token(client.client_id, client.client_secret, SPOTIFY_REDIRECT_URI, auth_code)
+    get_data(token, scopes)
