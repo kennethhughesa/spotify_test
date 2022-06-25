@@ -31,7 +31,7 @@ def get_auth_code(client_id, client_secret, SPOTIFY_REDIRECT_URI):
 
     auth_code = input('paste code from end of url here:')
 
-    return auth_code, scopes
+    return auth_code
 
 def get_auth_token(client_id, client_secret, SPOTIFY_REDIRECT_URI, auth_code):
     encoded_credentials = base64.b64encode(client_id.encode() + b':' + client_secret.encode()).decode("utf-8")
@@ -73,9 +73,9 @@ def get_auth_token(client_id, client_secret, SPOTIFY_REDIRECT_URI, auth_code):
 
     return token
 
-def get_data(token, scopes):
+def get_data(token):
     # base URL of all Spotify API endpoints
-    BASE_URL = 'https://api.spotify.com/v1/'
+    BASE_URL = 'https://api.spotify.com/v1/me/player/recently-played'
 
     # code for getting track data/ non user data
     # actual GET request with proper header
@@ -84,10 +84,13 @@ def get_data(token, scopes):
 
     user_headers = {
         'Authorization': 'Bearer {token}'.format(token=token),
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'client_id': client.client_id,
+        'client_secret': client.client_secret
     }
 
     user_params = {
+        'after': 1656048878,
         'limit': 50
     }
 
@@ -95,12 +98,13 @@ def get_data(token, scopes):
         print('----- token string received, attempting to retrieve data...  -----')
 
         try:
-            response = requests.get(BASE_URL + scopes, params=user_params, headers=user_headers)
+            response = requests.get(BASE_URL, params=user_params, headers=user_headers)
             # response = requests.get(f'https://accounts.spotify.com/authorize?client_id={client.client_id}&response_type=code&redirect_uri=http%3A%2F%2Flocalhost:3000%2Fcallback&scope={scopes}')
             # response = requests.get(BASE_URL + 'audio-features/' + track_id, headers=headers)
             response.raise_for_status()
             print('----- data retrieved -----')
-            print(response)
+            print(f'response object is: {response}')
+            print(f'response object content is: {response.content}')
             return response.content
         except requests.HTTPError as error:
             print('Error returned:\n', error)
@@ -142,6 +146,6 @@ def get_data(token, scopes):
 
 if __name__ == "__main__":
     spotify_request
-    auth_code, scopes = get_auth_code(client.client_id, client.client_secret, SPOTIFY_REDIRECT_URI)
+    auth_code = get_auth_code(client.client_id, client.client_secret, SPOTIFY_REDIRECT_URI)
     token = get_auth_token(client.client_id, client.client_secret, SPOTIFY_REDIRECT_URI, auth_code)
-    get_data(token, scopes)
+    get_data(token)
