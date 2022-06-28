@@ -7,6 +7,16 @@ import webbrowser
 import base64
 from urllib.parse import urlencode
 
+# read me for auth flow
+# 1. create spotify dev account
+# 2. add user you wish to get data for to USERS AND ACCESS
+# 3. add redirect uri in EDIT SETTINGS
+# 4. get auth code after user authorizes access to data
+# 5. get auth token
+# 6. get data
+
+
+
 load_dotenv()
 
 class spotify_request:
@@ -24,7 +34,8 @@ def get_auth_code(client_id, client_secret, SPOTIFY_REDIRECT_URI):
             "client_id": client_id,
             "response_type": "code",
             "redirect_uri": SPOTIFY_REDIRECT_URI,
-            "scope": scopes
+            "scope": scopes,
+            "show_dialog": "true"
     }
     
     webbrowser.open("https://accounts.spotify.com/authorize?" + urlencode(scopes_auth_headers), new=2)
@@ -75,7 +86,8 @@ def get_auth_token(client_id, client_secret, SPOTIFY_REDIRECT_URI, auth_code):
 
 def get_data(token):
     # base URL of all Spotify API endpoints
-    BASE_URL = 'https://api.spotify.com/v1/me/player/recently-played'
+    # BASE_URL = 'https://api.spotify.com/v1/me/player/recently-played'
+    BASE_URL = 'https://api.spotify.com/v1/users/Tiffanyhughes48/playlists'
 
     # code for getting track data/ non user data
     # actual GET request with proper header
